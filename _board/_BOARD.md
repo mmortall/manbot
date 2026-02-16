@@ -225,15 +225,15 @@
 
 ## In Progress
 
+## Done
+
 ### P1-01 Initialize project structure
 
-  - tags: [in-progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Set up the base directory structure, initialize the Node.js project, and configure TypeScript for a multi-process architecture.
 
     Source: P1-01_INITIALIZE_PROJECT.md
     ```
-
-## Done
 
