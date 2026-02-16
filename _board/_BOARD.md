@@ -2,16 +2,6 @@
 
 ## To Do
 
-### P1-01 Initialize project structure
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Set up the base directory structure, initialize the Node.js project, and configure TypeScript for a multi-process architecture.
-
-    Source: P1-01_INITIALIZE_PROJECT.md
-    ```
-
 ### P1-02 Define shared Zod schemas
 
   - tags: [pending]
@@ -234,6 +224,16 @@
 
 
 ## In Progress
+
+### P1-01 Initialize project structure
+
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Set up the base directory structure, initialize the Node.js project, and configure TypeScript for a multi-process architecture.
+
+    Source: P1-01_INITIALIZE_PROJECT.md
+    ```
 
 ## Done
 
