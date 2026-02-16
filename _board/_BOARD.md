@@ -62,16 +62,6 @@
     Source: P3-06_CORE_ORCHESTRATOR.md
     ```
 
-### P4-01 Telegram Adapter
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Develop a standalone service to interface the AI Agent platform with Telegram, allowing users to interact with the system via a bot.
-
-    Source: P4-01_TELEGRAM_ADAPTER.md
-    ```
-
 ### P4-02 Connect Telegram to Orchestrator
 
   - tags: [pending]
@@ -126,6 +116,16 @@
 ## In Progress
 
 ## Done
+
+### P4-01 Telegram Adapter
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Develop a standalone service to interface the AI Agent platform with Telegram, allowing users to interact with the system via a bot.
+
+    Source: P4-01_TELEGRAM_ADAPTER.md
+    ```
 
 ### P1-01 Initialize project structure
 
