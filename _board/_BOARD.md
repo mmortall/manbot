@@ -2,16 +2,6 @@
 
 ## To Do
 
-### P1-03 Create base Process class
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Implement a base class or helper to standardize the way individual processes handle stdin/stdout communication, message parsing, and error handling.
-
-    Source: P1-03_BASE_PROCESS_CLASS.md
-    ```
-
 ### P1-04 Implement Logger Service
 
   - tags: [pending]
@@ -214,6 +204,16 @@
 
 
 ## In Progress
+
+### P1-03 Create base Process class
+
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Implement a base class or helper to standardize the way individual processes handle stdin/stdout communication, message parsing, and error handling.
+
+    Source: P1-03_BASE_PROCESS_CLASS.md
+    ```
 
 ## Done
 
