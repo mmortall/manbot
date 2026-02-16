@@ -9,9 +9,9 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
+import { getConfig } from "../shared/config.js";
 import { OllamaAdapter } from "./ollama-adapter.js";
 
-const DEFAULT_EMBED_MODEL = "nomic-embed-text";
 const PROCESS_NAME = "rag-service";
 
 interface StoredDocument {
@@ -39,7 +39,7 @@ export class RAGService extends BaseProcess {
   constructor(options?: { ollama?: OllamaAdapter; embedModel?: string }) {
     super({ processName: PROCESS_NAME });
     this.ollama = options?.ollama ?? new OllamaAdapter();
-    this.embedModel = options?.embedModel ?? DEFAULT_EMBED_MODEL;
+    this.embedModel = options?.embedModel ?? getConfig().rag.embedModel;
   }
 
   /** Embed and store a document */

@@ -8,12 +8,11 @@ import { dirname, join } from "node:path";
 import pino from "pino";
 import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
-
-const LOG_DIR = "logs";
-const LOG_FILE = "events.log";
+import { getConfig } from "../shared/config.js";
 
 function createLogger(): pino.Logger {
-  const logPath = join(process.cwd(), LOG_DIR, LOG_FILE);
+  const { logDir, logFile } = getConfig().logger;
+  const logPath = join(process.cwd(), logDir, logFile);
   mkdirSync(dirname(logPath), { recursive: true });
   const destination = pino.destination(logPath);
   return pino(

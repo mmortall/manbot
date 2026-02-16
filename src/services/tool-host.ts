@@ -11,10 +11,10 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
+import { getConfig } from "../shared/config.js";
 
 const PROCESS_NAME = "tool-host";
 const TOOL_EXECUTE = "tool.execute";
-const DEFAULT_SANDBOX = process.cwd();
 
 interface ToolExecutePayload {
   name: string;
@@ -30,7 +30,7 @@ export class ToolHost extends BaseProcess {
 
   constructor(options?: { sandboxDir?: string }) {
     super({ processName: PROCESS_NAME });
-    this.sandboxDir = resolve(options?.sandboxDir ?? process.env.TOOL_SANDBOX_DIR ?? DEFAULT_SANDBOX);
+    this.sandboxDir = resolve(options?.sandboxDir ?? getConfig().toolHost.sandboxDir);
     this.registerDefaultTools();
   }
 

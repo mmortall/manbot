@@ -3,6 +3,8 @@
  * Uses fetch; supports timeout and retry for network errors.
  */
 
+import { getConfig } from "../shared/config.js";
+
 export interface GenerateOptions {
   timeoutMs?: number;
 }
@@ -38,10 +40,6 @@ export interface EmbedResult {
   prompt_eval_count?: number;
 }
 
-const DEFAULT_BASE_URL = "http://127.0.0.1:11434";
-const DEFAULT_TIMEOUT_MS = 60_000;
-const DEFAULT_RETRIES = 2;
-
 export interface OllamaAdapterOptions {
   baseUrl?: string;
   timeoutMs?: number;
@@ -54,9 +52,10 @@ export class OllamaAdapter {
   private readonly retries: number;
 
   constructor(options: OllamaAdapterOptions = {}) {
-    this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
-    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    this.retries = options.retries ?? DEFAULT_RETRIES;
+    const c = getConfig().ollama;
+    this.baseUrl = options.baseUrl ?? c.baseUrl;
+    this.timeoutMs = options.timeoutMs ?? c.timeoutMs;
+    this.retries = options.retries ?? c.retries;
   }
 
   /**

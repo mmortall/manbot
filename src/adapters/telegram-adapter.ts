@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { BaseProcess } from "../shared/base-process.js";
+import { getConfig } from "../shared/config.js";
 
 const PROCESS_NAME = "telegram-adapter";
 
@@ -45,9 +46,9 @@ export interface TelegramProgressPayload {
   text: string;
 }
 
-/** Parse allow-list from env: comma-separated Telegram user IDs. Empty = allow all. */
+/** Parse allow-list from config: comma-separated Telegram user IDs. Empty = allow all. */
 function getAllowedUserIds(): Set<number> | null {
-  const raw = process.env.TELEGRAM_ALLOWED_USER_IDS?.trim();
+  const raw = getConfig().telegram.allowedUserIds?.trim();
   if (!raw) return null;
   const ids = new Set<number>();
   for (const s of raw.split(",")) {
@@ -75,9 +76,9 @@ const HELP_TEXT = `Commands:
 /help — Show this help`;
 
 function main(): void {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = getConfig().telegram.botToken;
   if (!token) {
-    console.error("TELEGRAM_BOT_TOKEN environment variable is required");
+    console.error("Telegram bot token is required. Set telegram.botToken in config.json or TELEGRAM_BOT_TOKEN.");
     process.exit(1);
   }
 

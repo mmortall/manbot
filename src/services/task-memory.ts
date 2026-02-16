@@ -5,6 +5,7 @@
  */
 
 import { mkdirSync } from "node:fs";
+import { getConfig } from "../shared/config.js";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
@@ -12,7 +13,6 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 
-const DEFAULT_DB_PATH = "data/tasks.sqlite";
 
 // --- Schema (from _docs/TASK MEMORY SQLITE SCHEMA.md) ---
 
@@ -121,9 +121,10 @@ interface TaskFailPayload {
 export class TaskMemoryStore {
   private db: Database.Database;
 
-  constructor(dbPath: string = DEFAULT_DB_PATH) {
-    mkdirSync(dirname(dbPath), { recursive: true });
-    this.db = new Database(dbPath);
+  constructor(dbPath?: string) {
+    const path = dbPath ?? getConfig().taskMemory.dbPath;
+    mkdirSync(dirname(path), { recursive: true });
+    this.db = new Database(path);
     this.db.exec(SCHEMA);
   }
 
@@ -295,7 +296,8 @@ export class TaskMemoryService extends BaseProcess {
 
   constructor(dbPath?: string) {
     super({ processName: "task-memory" });
-    this.store = new TaskMemoryStore(dbPath);
+    const path = dbPath ?? getConfig().taskMemory.dbPath;
+    this.store = new TaskMemoryStore(path);
   }
 
   override start(): void {
@@ -391,8 +393,7 @@ export class TaskMemoryService extends BaseProcess {
 }
 
 function main(): void {
-  const dbPath = process.env["TASK_MEMORY_DB"] ?? DEFAULT_DB_PATH;
-  const service = new TaskMemoryService(dbPath);
+  const service = new TaskMemoryService();
   service.start();
 }
 

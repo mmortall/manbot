@@ -3,6 +3,8 @@
  * Per _docs/TECH.md: small -> llama3:8b, medium -> mistral, large -> mixtral.
  */
 
+import { getConfig } from "../shared/config.js";
+
 export type ComplexityLevel = "small" | "medium" | "large";
 
 export interface ModelRouterConfig {
@@ -11,17 +13,12 @@ export interface ModelRouterConfig {
   large: string;
 }
 
-const DEFAULT_CONFIG: ModelRouterConfig = {
-  small: "llama3:8b",
-  medium: "mistral",
-  large: "mixtral",
-};
-
 export class ModelRouter {
   private readonly config: ModelRouterConfig;
 
   constructor(config?: Partial<ModelRouterConfig>) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    const defaults = getConfig().modelRouter;
+    this.config = { ...defaults, ...config };
   }
 
   /**

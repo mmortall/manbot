@@ -13,9 +13,9 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
+import { getConfig } from "../shared/config.js";
 
 const PROCESS_NAME = "cron-manager";
-const DEFAULT_DB_PATH = "data/cron.sqlite";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS cron_schedules (
@@ -43,10 +43,11 @@ export class CronManager extends BaseProcess {
   private db: Database.Database;
   private jobs = new Map<string, cron.ScheduledTask>();
 
-  constructor(dbPath: string = DEFAULT_DB_PATH) {
+  constructor(dbPath?: string) {
+    const path = dbPath ?? getConfig().cron.dbPath;
     super({ processName: PROCESS_NAME });
-    mkdirSync(dirname(dbPath), { recursive: true });
-    this.db = new Database(dbPath);
+    mkdirSync(dirname(path), { recursive: true });
+    this.db = new Database(path);
     this.db.exec(SCHEMA);
     this.loadSchedules();
   }
@@ -211,8 +212,7 @@ export class CronManager extends BaseProcess {
 }
 
 function main(): void {
-  const dbPath = process.env.CRON_DB ?? DEFAULT_DB_PATH;
-  const manager = new CronManager(dbPath);
+  const manager = new CronManager();
   manager.start();
 }
 
