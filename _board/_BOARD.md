@@ -2,16 +2,6 @@
 
 ## To Do
 
-### P2-01 Implement Ollama Adapter
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Build a bridge between the AI Agent platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
-
-    Source: P2-01_OLLAMA_ADAPTER.md
-    ```
-
 ### P2-02 Implement Model Router
 
   - tags: [pending]
@@ -174,6 +164,16 @@
 
 
 ## In Progress
+
+### P2-01 Implement Ollama Adapter
+
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Build a bridge between the AI Agent platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
+
+    Source: P2-01_OLLAMA_ADAPTER.md
+    ```
 
 ## Done
 
