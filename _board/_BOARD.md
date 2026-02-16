@@ -185,16 +185,6 @@
 
 ## In Progress
 
-### P1-05 Implement Task Memory Service
-
-  - tags: [in-progress]
-  - defaultExpanded: false
-    ```md
-    Establish the persistence layer for task lifecycle and execution states using SQLite. This service will manage all data related to task DAGs and node results.
-
-    Source: P1-05_TASK_MEMORY_SERVICE.md
-    ```
-
 ## Done
 
 ### P1-01 Initialize project structure
@@ -235,5 +225,15 @@
     Create a dedicated logging service process that subscribes to system-wide events and persists them to files in a structured format.
 
     Source: P1-04_LOGGER_SERVICE.md
+    ```
+
+### P1-05 Implement Task Memory Service
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Establish the persistence layer for task lifecycle and execution states using SQLite. This service will manage all data related to task DAGs and node results.
+
+    Source: P1-05_TASK_MEMORY_SERVICE.md
     ```
 
