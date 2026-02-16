@@ -2,16 +2,6 @@
 
 ## To Do
 
-### P1-06 Write integration tests for Task Memory Service
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Develop a comprehensive suite of integration tests to verify that the Task Memory Service correctly persists task states, child nodes, and their transitions throughout the execution lifecycle.
-
-    Source: P1-06_TASK_MEMORY_TESTS.md
-    ```
-
 ### P2-01 Implement Ollama Adapter
 
   - tags: [pending]
@@ -235,5 +225,15 @@
     Establish the persistence layer for task lifecycle and execution states using SQLite. This service will manage all data related to task DAGs and node results.
 
     Source: P1-05_TASK_MEMORY_SERVICE.md
+    ```
+
+### P1-06 Write integration tests for Task Memory Service
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Develop a comprehensive suite of integration tests to verify that the Task Memory Service correctly persists task states, child nodes, and their transitions throughout the execution lifecycle.
+
+    Source: P1-06_TASK_MEMORY_TESTS.md
     ```
 
