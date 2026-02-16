@@ -2,16 +2,6 @@
 
 ## To Do
 
-### P1-04 Implement Logger Service
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Create a dedicated logging service process that subscribes to system-wide events and persists them to files in a structured format.
-
-    Source: P1-04_LOGGER_SERVICE.md
-    ```
-
 ### P1-05 Implement Task Memory Service
 
   - tags: [pending]
@@ -204,6 +194,16 @@
 
 
 ## In Progress
+
+### P1-04 Implement Logger Service
+
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Create a dedicated logging service process that subscribes to system-wide events and persists them to files in a structured format.
+
+    Source: P1-04_LOGGER_SERVICE.md
+    ```
 
 ## Done
 
