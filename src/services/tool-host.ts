@@ -14,6 +14,7 @@ import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
 import { BrowserService } from "./browser-service.js";
 import { htmlToMarkdown } from "../utils/html-to-markdown.js";
+import { ConsoleLogger } from "../utils/console-logger.js";
 
 const PROCESS_NAME = "tool-host";
 const TOOL_EXECUTE = "tool.execute";
@@ -235,12 +236,50 @@ export class ToolHost extends BaseProcess {
       return;
     }
     (async () => {
+      const startTime = Date.now();
       try {
+        // Log tool execution start
+        this.emitEvent("event.tool.started", {
+          toolName: name,
+          arguments: this.sanitizeArguments(args),
+          taskId: (envelope.payload as Record<string, unknown>).taskId,
+          nodeId: (envelope.payload as Record<string, unknown>).nodeId,
+        });
+        ConsoleLogger.info(PROCESS_NAME, `Tool execution started: ${name}`, envelope);
+
         const result = await tool(args);
+        const duration = Date.now() - startTime;
+        
+        // Log tool execution success
+        this.emitEvent("event.tool.completed", {
+          toolName: name,
+          arguments: this.sanitizeArguments(args),
+          durationMs: duration,
+          success: true,
+          taskId: (envelope.payload as Record<string, unknown>).taskId,
+          nodeId: (envelope.payload as Record<string, unknown>).nodeId,
+        });
+        ConsoleLogger.info(PROCESS_NAME, `Tool execution completed: ${name} (${duration}ms)`, envelope);
+        
         this.sendResponse(envelope, result);
       } catch (err) {
+        const duration = Date.now() - startTime;
         const message = err instanceof Error ? err.message : String(err);
         const isPermission = message.includes("Permission denied");
+        
+        // Log tool execution failure
+        this.emitEvent("event.tool.failed", {
+          toolName: name,
+          arguments: this.sanitizeArguments(args),
+          durationMs: duration,
+          success: false,
+          error: message,
+          errorCode: isPermission ? "PERMISSION_DENIED" : "TOOL_ERROR",
+          taskId: (envelope.payload as Record<string, unknown>).taskId,
+          nodeId: (envelope.payload as Record<string, unknown>).nodeId,
+        });
+        ConsoleLogger.error(PROCESS_NAME, `Tool execution failed: ${name} - ${message}`, err instanceof Error ? err : undefined, envelope);
+        
         this.sendError(envelope, isPermission ? "PERMISSION_DENIED" : "TOOL_ERROR", message);
       }
     })();
@@ -271,6 +310,45 @@ export class ToolHost extends BaseProcess {
       timestamp: Date.now(),
       payload: { code, message, details: {} },
     });
+  }
+
+  private emitEvent(type: string, payload: unknown): void {
+    this.send({
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: PROCESS_NAME,
+      to: "logger",
+      type,
+      version: PROTOCOL_VERSION,
+      payload,
+    });
+  }
+
+  /**
+   * Sanitize arguments for logging (remove sensitive data, truncate large values)
+   */
+  private sanitizeArguments(args: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+    const MAX_VALUE_LENGTH = 500;
+    
+    for (const [key, value] of Object.entries(args)) {
+      if (typeof value === "string") {
+        // Truncate long strings
+        sanitized[key] = value.length > MAX_VALUE_LENGTH 
+          ? value.substring(0, MAX_VALUE_LENGTH) + "..." 
+          : value;
+      } else if (typeof value === "object" && value !== null) {
+        // For objects, stringify and truncate if needed
+        const str = JSON.stringify(value);
+        sanitized[key] = str.length > MAX_VALUE_LENGTH 
+          ? str.substring(0, MAX_VALUE_LENGTH) + "..." 
+          : value;
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    
+    return sanitized;
   }
 }
 
