@@ -1,5 +1,5 @@
 {
-  "name": "ai-agent",
+  "name": "manbot",
   "version": "1.0.0",
   "description": "🧬 ManBot — Multi-process AI platform with type-safe IPC and capability graph execution",
   "main": "dist/index.js",

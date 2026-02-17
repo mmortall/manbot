@@ -110,89 +110,44 @@ export class ToolHost extends BaseProcess {
   private async httpGetTool(args: Record<string, unknown>): Promise<unknown> {
     const url = args.url;
     if (typeof url !== "string") throw new Error("http_get requires url (string)");
-    
-    const useBrowser = args.useBrowser === true;
+
     const convertToMarkdown = args.convertToMarkdown !== false; // Default true for HTML
-    
+
     const startTime = Date.now();
-    let method = "fetch";
-    
+
     try {
-      // Try fetch first (unless useBrowser is explicitly true)
-      if (!useBrowser) {
-        try {
-          const res = await fetch(url, { method: "GET" });
-          const status = res.status;
-          const contentType = res.headers.get("content-type") || "";
-          const text = await res.text();
-          
-          // Check if we should fallback to browser (403, 401, or other error statuses)
-          if (status === 403 || status === 401) {
-            // Fallback to browser for blocked requests
-            method = "browser (fallback from fetch)";
-            return await this.fetchWithBrowser(url, text, contentType, convertToMarkdown, startTime);
-          }
-          
-          // Check if content is HTML and should be converted to Markdown
-          const isHTML = contentType.includes("text/html") || text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html");
-          let body = text;
-          
-          if (convertToMarkdown && isHTML) {
-            body = htmlToMarkdown(text);
-          }
-          
-          const responseTime = Date.now() - startTime;
-          
-          return {
-            status,
-            body,
-            contentType,
-            finalUrl: url,
-            method: "GET",
-            usedMethod: method,
-            responseTimeMs: responseTime,
-          };
-        } catch (fetchError) {
-          // If fetch fails, try browser as fallback
-          method = "browser (fallback from fetch error)";
-          const contentType = "";
-          return await this.fetchWithBrowser(url, "", contentType, convertToMarkdown, startTime);
-        }
-      } else {
-        // Use browser directly
-        method = "browser";
-        const contentType = "";
-        return await this.fetchWithBrowser(url, "", contentType, convertToMarkdown, startTime);
-      }
+      // Use browser directly for all requests
+      const contentType = "";
+      return await this.fetchWithBrowser(url, "", contentType, convertToMarkdown, startTime);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`HTTP GET failed (${method}): ${message}`);
+      throw new Error(`HTTP GET failed (browser): ${message}`);
     }
   }
 
   private async httpSearchTool(args: Record<string, unknown>): Promise<unknown> {
     const query = args.query ?? args.q;
     if (typeof query !== "string") throw new Error("http_search requires query (string)");
-    
+
     // Build DuckDuckGo search URL
     const searchUrl = `https://duckduckgo.com/search?q=${encodeURIComponent(query)}`;
-    
+
     const startTime = Date.now();
-    
+
     try {
       // DuckDuckGo is an SPA, so we always use browser
       const browserService = this.getBrowserService();
       const result = await browserService.fetchWithBrowser(searchUrl);
-      
+
       const responseTime = Date.now() - startTime;
       let body = result.body;
-      
+
       // Convert HTML to Markdown (DuckDuckGo returns HTML)
       const isHTML = result.contentType.includes("text/html") || body.trim().startsWith("<!DOCTYPE") || body.trim().startsWith("<html");
       if (isHTML) {
         body = htmlToMarkdown(body);
       }
-      
+
       return {
         status: result.status,
         body,
@@ -230,19 +185,19 @@ export class ToolHost extends BaseProcess {
 
     // Use provided cwd or default to sandboxDir
     const cwd = typeof args.cwd === "string" ? args.cwd : this.sandboxDir;
-    
+
     // Validate command and cwd before execution
     const validation = this.validateCommand(command, cwd);
     if (!validation.allowed) {
       throw new Error(`Command validation failed: ${validation.reason}`);
     }
-    
+
     // Resolve cwd after validation
     const resolvedCwd = resolve(cwd);
-    
+
     // Use executor timeout as a reasonable default (10 minutes), or 30 seconds as a fallback
     const timeoutMs = getConfig().executor.nodeTimeoutMs || 30_000;
-    
+
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: resolvedCwd,
@@ -261,7 +216,7 @@ export class ToolHost extends BaseProcess {
     } catch (error: unknown) {
       // execAsync rejects on non-zero exit codes or execution errors
       // The error object contains stdout, stderr, and code properties
-      
+
       // Handle timeout - this is a critical error that should be thrown
       if (
         error &&
@@ -271,7 +226,7 @@ export class ToolHost extends BaseProcess {
       ) {
         throw new Error(`Command execution timed out after ${Math.floor(timeoutMs / 1000)}s: ${command}`);
       }
-      
+
       // Extract stdout, stderr, and exitCode from error object
       let stdout = "";
       let stderr = "";
@@ -291,8 +246,8 @@ export class ToolHost extends BaseProcess {
             exitCode = error.code;
           } else if (typeof error.code === "string" && error.code !== "ETIMEDOUT" && error.code !== "TIMEOUT") {
             // For system errors (like ENOENT), set stderr with error message
-            const errorMessage = ("message" in error && typeof error.message === "string") 
-              ? error.message 
+            const errorMessage = ("message" in error && typeof error.message === "string")
+              ? error.message
               : String(error);
             stderr = errorMessage;
           }
@@ -323,16 +278,16 @@ export class ToolHost extends BaseProcess {
   ): Promise<unknown> {
     const browserService = this.getBrowserService();
     const result = await browserService.fetchWithBrowser(url);
-    
+
     const responseTime = Date.now() - startTime;
     let body = result.body;
-    
+
     // Convert to Markdown if requested and content is HTML
     const isHTML = result.contentType.includes("text/html") || body.trim().startsWith("<!DOCTYPE") || body.trim().startsWith("<html");
     if (convertToMarkdown && isHTML) {
       body = htmlToMarkdown(body);
     }
-    
+
     return {
       status: result.status,
       body,
@@ -381,7 +336,7 @@ export class ToolHost extends BaseProcess {
 
         const result = await tool(args);
         const duration = Date.now() - startTime;
-        
+
         // Log tool execution success
         this.emitEvent("event.tool.completed", {
           toolName: name,
@@ -392,13 +347,13 @@ export class ToolHost extends BaseProcess {
           nodeId: (envelope.payload as Record<string, unknown>).nodeId,
         });
         ConsoleLogger.info(PROCESS_NAME, `Tool execution completed: ${name} (${duration}ms)`, envelope);
-        
+
         this.sendResponse(envelope, result);
       } catch (err) {
         const duration = Date.now() - startTime;
         const message = err instanceof Error ? err.message : String(err);
         const isPermission = message.includes("Permission denied");
-        
+
         // Log tool execution failure
         this.emitEvent("event.tool.failed", {
           toolName: name,
@@ -411,7 +366,7 @@ export class ToolHost extends BaseProcess {
           nodeId: (envelope.payload as Record<string, unknown>).nodeId,
         });
         ConsoleLogger.error(PROCESS_NAME, `Tool execution failed: ${name} - ${message}`, err instanceof Error ? err : undefined, envelope);
-        
+
         this.sendError(envelope, isPermission ? "PERMISSION_DENIED" : "TOOL_ERROR", message);
       }
     })();
@@ -462,24 +417,24 @@ export class ToolHost extends BaseProcess {
   private sanitizeArguments(args: Record<string, unknown>): Record<string, unknown> {
     const sanitized: Record<string, unknown> = {};
     const MAX_VALUE_LENGTH = 500;
-    
+
     for (const [key, value] of Object.entries(args)) {
       if (typeof value === "string") {
         // Truncate long strings
-        sanitized[key] = value.length > MAX_VALUE_LENGTH 
-          ? value.substring(0, MAX_VALUE_LENGTH) + "..." 
+        sanitized[key] = value.length > MAX_VALUE_LENGTH
+          ? value.substring(0, MAX_VALUE_LENGTH) + "..."
           : value;
       } else if (typeof value === "object" && value !== null) {
         // For objects, stringify and truncate if needed
         const str = JSON.stringify(value);
-        sanitized[key] = str.length > MAX_VALUE_LENGTH 
-          ? str.substring(0, MAX_VALUE_LENGTH) + "..." 
+        sanitized[key] = str.length > MAX_VALUE_LENGTH
+          ? str.substring(0, MAX_VALUE_LENGTH) + "..."
           : value;
       } else {
         sanitized[key] = value;
       }
     }
-    
+
     return sanitized;
   }
 }

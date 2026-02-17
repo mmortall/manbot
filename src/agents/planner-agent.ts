@@ -19,6 +19,10 @@ interface PlanCreatePayload {
   goal?: string;
   message?: string;
   complexity?: "small" | "medium" | "large";
+  /** When set, a previous attempt failed; use this to produce a corrected plan. */
+  previousError?: string;
+  /** Optional previous plan that failed (object). Will be stringified for the prompt. */
+  previousPlan?: Record<string, unknown>;
 }
 
 function extractJson(text: string): string {
@@ -57,7 +61,16 @@ export class PlannerAgent extends BaseProcess {
     (async () => {
       try {
         const model = this.modelRouter.getModel(complexity);
-        const prompt = buildPlannerPrompt(goal);
+        const previousError = typeof p.previousError === "string" ? p.previousError : undefined;
+        const previousPlanJson =
+          p.previousPlan && typeof p.previousPlan === "object"
+            ? JSON.stringify(p.previousPlan, null, 2)
+            : undefined;
+        const promptOptions =
+          previousError ?? previousPlanJson
+            ? { ...(previousError && { previousError }), ...(previousPlanJson && { previousPlanJson }) }
+            : undefined;
+        const prompt = buildPlannerPrompt(goal, promptOptions);
         const messages = [
           { role: "system" as const, content: "You output only valid JSON. No markdown, no explanation." },
           { role: "user" as const, content: prompt },

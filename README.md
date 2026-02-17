@@ -9,7 +9,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Multi-agent pipeline**: Planner → Task Memory → Executor → Critic (optional revision loop)
 - **Capability graph (DAG)**: Nodes for `generate_text`, `semantic_search`, `reflect`, `tool`; parallel execution where dependencies allow
 - **Type-safe IPC**: JSONL over stdin/stdout with Zod-validated envelopes
-- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (**shell tool** for file operations and system commands, **enhanced http_get with browser fallback**, http_search), Cron Manager, Browser Service (Playwright with stealth capabilities)
+- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (**shell tool** for file operations and system commands, **http_get with Playwright browser**, http_search), Cron Manager, Browser Service (Playwright with stealth capabilities)
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; optional allow-list of user IDs
 - **Conversation archiving**: `/new` resets the session, summarizes the previous conversation via a dedicated summarizer prompt, and stores the summary in RAG for later retrieval
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
@@ -75,9 +75,9 @@ npm install
 npm run build
 ```
 
-### Browser Dependencies (for HTTP Get tool with browser fallback)
+### Browser Dependencies (for HTTP Get tool)
 
-If you plan to use the enhanced HTTP Get tool with browser automation (for JavaScript-heavy sites or bot-protected pages), install Playwright browsers:
+Since the `http_get` tool uses browser automation (for all sites, including JavaScript-heavy or bot-protected pages), you must install Playwright browsers:
 
 ```bash
 npx playwright install chromium
@@ -138,13 +138,13 @@ The bot supports scheduling reminders using natural language:
 
 The system uses LLM-powered time parsing to convert natural language expressions into cron expressions, which are then scheduled via the Cron Manager service. When a reminder fires, the bot sends a message back to the user via Telegram.
 
-## Enhanced HTTP Get Tool
+## HTTP Get Tool (Browser-based)
 
-The `http_get` tool includes smart fallback to browser automation for handling JavaScript-heavy sites and bot-protected pages.
+The `http_get` tool uses Playwright browser automation for handling all websites, including JavaScript-heavy sites and bot-protected pages.
 
 ### Features
 
-- **Smart Fallback**: Tries `fetch` API first (faster), automatically falls back to Playwright browser on 403/401 errors or when explicitly requested
+- **Full Rendering**: Uses Playwright to render pages, supporting Single Page Applications (SPAs) and dynamic content
 - **Bot Detection Bypass**: Uses Playwright with stealth plugin to bypass common bot detection mechanisms
 - **HTML to Markdown**: Automatically converts HTML responses to clean Markdown format (can be disabled)
 - **Realistic Behavior**: Simulates human-like browsing with random delays, mouse movements, and scrolling
@@ -153,20 +153,13 @@ The `http_get` tool includes smart fallback to browser automation for handling J
 
 The tool accepts these parameters:
 - `url` (required): The URL to fetch
-- `useBrowser` (optional): Force browser usage instead of fetch. Use for:
-  - Single Page Applications (SPAs) requiring JavaScript execution
-  - Sites with bot detection/anti-scraping protection
-  - Pages that load content dynamically via JavaScript
 - `convertToMarkdown` (optional, default: `true` for HTML): Convert HTML responses to Markdown
 
 ### Examples
 
 ```javascript
-// Simple fetch (uses fetch API)
+// Fetch URL (uses browser)
 { "tool": "http_get", "arguments": { "url": "https://example.com" } }
-
-// Force browser for SPA
-{ "tool": "http_get", "arguments": { "url": "https://spa.example.com", "useBrowser": true } }
 
 // Keep HTML format
 { "tool": "http_get", "arguments": { "url": "https://example.com", "convertToMarkdown": false } }
@@ -174,8 +167,7 @@ The tool accepts these parameters:
 
 ### Performance
 
-- **Fetch API**: Typically <1 second for most sites
-- **Browser (Playwright)**: Typically 2-5 seconds, includes realistic delays and JavaScript execution
+- **Browser-based**: Typically 2-5 seconds, includes realistic delays and JavaScript execution
 - Browser context reuse improves performance for multiple requests
 
 ### Configuration
@@ -224,8 +216,7 @@ See **AI-Agent.md** for full folder/file structure and architecture. The agent u
 - Verify network connectivity and DNS resolution
 
 **Performance issues:**
-- Browser mode is slower than fetch (2-5s vs <1s)
-- Use `useBrowser: true` only when necessary (SPAs, protected sites)
+- Browser-based scraping is slower than raw fetch (2-5s vs <1s)
 - Enable `browserService.reuseContext: true` to reuse browser instances
 
 **Memory usage:**

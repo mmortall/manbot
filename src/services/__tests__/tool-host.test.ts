@@ -17,11 +17,11 @@ describe("ToolHost http_get", () => {
 
   beforeEach(() => {
     toolHost = new ToolHost();
-    
+
     // Create a test HTTP server
     testServer = createServer((req, res) => {
       const url = req.url || "/";
-      
+
       if (url === "/simple") {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end("<html><body><h1>Simple Page</h1><p>Test content</p></body></html>");
@@ -61,7 +61,7 @@ describe("ToolHost http_get", () => {
       // Clean up browser service if it was created
       const browserService = (toolHost as any).browserService;
       if (browserService) {
-        await browserService.close().catch(() => {});
+        await browserService.close().catch(() => { });
       }
     }
     if (testServer) {
@@ -73,40 +73,40 @@ describe("ToolHost http_get", () => {
   });
 
   describe("basic functionality", () => {
-    it("successfully fetches a simple URL with fetch", async () => {
+    it("successfully fetches a simple URL with browser", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/simple` });
-      
+
       expect(result.status).toBe(200);
       expect(result.body).toContain("Simple Page");
       expect(result.contentType).toContain("text/html");
       expect(result.method).toBe("GET");
       expect(result.finalUrl).toBe(`${serverUrl}/simple`);
-      expect(result.usedMethod).toBe("fetch");
+      expect(result.usedMethod).toBe("browser");
       expect(result.responseTimeMs).toBeGreaterThan(0);
-    });
+    }, 30000);
 
     it("handles JSON responses", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/json` });
-      
+
       expect(result.status).toBe(200);
       expect(result.body).toContain("Hello World");
       expect(result.contentType).toContain("application/json");
-      expect(result.usedMethod).toBe("fetch");
-    });
+      expect(result.usedMethod).toBe("browser");
+    }, 30000);
 
     it("handles 404 errors", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/notfound` });
-      
+
       expect(result.status).toBe(404);
       expect(result.body).toContain("Not Found");
-      expect(result.usedMethod).toBe("fetch");
-    });
+      expect(result.usedMethod).toBe("browser");
+    }, 30000);
   });
 
   describe("fallback to browser", () => {
     it("falls back to browser on 403 response", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/forbidden` });
-      
+
       // Should fallback to browser
       expect(result.status).toBe(403);
       expect(result.body).toContain("Forbidden");
@@ -115,7 +115,7 @@ describe("ToolHost http_get", () => {
 
     it("falls back to browser on 401 response", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/unauthorized` });
-      
+
       // Should fallback to browser
       expect(result.status).toBe(401);
       expect(result.body).toContain("Unauthorized");
@@ -123,23 +123,23 @@ describe("ToolHost http_get", () => {
     }, 30000);
   });
 
-  describe("explicit browser usage", () => {
-    it("uses browser when useBrowser is true", async () => {
-      const result = await (toolHost as any).httpGetTool({
-        url: `${serverUrl}/simple`,
-        useBrowser: true,
-      });
-      
-      expect(result.status).toBe(200);
-      expect(result.body).toContain("Simple Page");
-      expect(result.usedMethod).toBe("browser");
-    }, 30000);
-  });
+  // describe("explicit browser usage", () => {
+  //   it("uses browser when useBrowser is true", async () => {
+  //     const result = await (toolHost as any).httpGetTool({
+  //       url: `${serverUrl}/simple`,
+  //       useBrowser: true,
+  //     });
+  //     
+  //     expect(result.status).toBe(200);
+  //     expect(result.body).toContain("Simple Page");
+  //     expect(result.usedMethod).toBe("browser");
+  //   }, 30000);
+  // });
 
   describe("HTML to Markdown conversion", () => {
     it("converts HTML to Markdown by default", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/simple` });
-      
+
       expect(result.status).toBe(200);
       // Should be converted to Markdown
       expect(result.body).toMatch(/# Simple Page/);
@@ -151,7 +151,7 @@ describe("ToolHost http_get", () => {
       const result = await (toolHost as any).httpGetTool({
         url: `${serverUrl}/html-no-content-type`,
       });
-      
+
       expect(result.status).toBe(200);
       // Should detect HTML and convert
       expect(result.body).toMatch(/# No Content-Type/);
@@ -162,7 +162,7 @@ describe("ToolHost http_get", () => {
         url: `${serverUrl}/simple`,
         convertToMarkdown: false,
       });
-      
+
       expect(result.status).toBe(200);
       // Should remain as HTML
       expect(result.body).toContain("<h1>Simple Page</h1>");
@@ -171,7 +171,7 @@ describe("ToolHost http_get", () => {
 
     it("does not convert non-HTML content", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/json` });
-      
+
       expect(result.status).toBe(200);
       // JSON should remain unchanged
       expect(result.body).toContain('{"message": "Hello World"}');
@@ -182,7 +182,7 @@ describe("ToolHost http_get", () => {
   describe("response format", () => {
     it("includes all required fields", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/simple` });
-      
+
       expect(result).toHaveProperty("status");
       expect(result).toHaveProperty("body");
       expect(result).toHaveProperty("contentType");
@@ -190,7 +190,7 @@ describe("ToolHost http_get", () => {
       expect(result).toHaveProperty("method");
       expect(result).toHaveProperty("usedMethod");
       expect(result).toHaveProperty("responseTimeMs");
-      
+
       expect(typeof result.status).toBe("number");
       expect(typeof result.body).toBe("string");
       expect(typeof result.contentType).toBe("string");
@@ -202,45 +202,29 @@ describe("ToolHost http_get", () => {
 
     it("populates finalUrl correctly", async () => {
       const result = await (toolHost as any).httpGetTool({ url: `${serverUrl}/simple` });
-      
+
       expect(result.finalUrl).toBe(`${serverUrl}/simple`);
     });
   });
 
   describe("error handling", () => {
     it("handles invalid URLs", async () => {
+      // Browser usually throws on navigation failure
       await expect(
         (toolHost as any).httpGetTool({ url: "http://invalid-domain-that-does-not-exist-12345.com" })
       ).rejects.toThrow();
-    });
+    }, 30000);
 
     it("handles network failures gracefully", async () => {
       // Close server to simulate network failure
       await new Promise<void>((resolve) => {
         testServer!.close(() => resolve());
       });
-      
+      testServer = null;
+
       await expect(
         (toolHost as any).httpGetTool({ url: `${serverUrl}/simple` })
       ).rejects.toThrow();
-    });
-  });
-
-  describe("browser fallback on fetch errors", () => {
-    it("falls back to browser when fetch throws error", async () => {
-      // Use an invalid URL that fetch will fail on, but browser might handle differently
-      // Actually, let's test with a URL that fetch can't resolve
-      const invalidUrl = "http://localhost:99999/invalid";
-      
-      // This should attempt fetch first, fail, then try browser
-      try {
-        const result = await (toolHost as any).httpGetTool({ url: invalidUrl });
-        // If browser succeeds, check it
-        expect(result.usedMethod).toContain("browser");
-      } catch (error) {
-        // If both fail, that's also acceptable
-        expect(error).toBeDefined();
-      }
     }, 30000);
   });
 });
@@ -261,12 +245,12 @@ describe("ToolHost shell", () => {
       // Clean up browser service if it was created
       const browserService = (toolHost as any).browserService;
       if (browserService) {
-        await browserService.close().catch(() => {});
+        await browserService.close().catch(() => { });
       }
     }
     // Clean up test sandbox directory
     if (testSandboxDir && existsSync(testSandboxDir)) {
-      await rm(testSandboxDir, { recursive: true, force: true }).catch(() => {});
+      await rm(testSandboxDir, { recursive: true, force: true }).catch(() => { });
     }
   });
 
@@ -298,11 +282,11 @@ describe("ToolHost shell", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      
+
       // Verify file was created and contains correct content
       const fileExists = existsSync(testFile);
       expect(fileExists).toBe(true);
-      
+
       if (fileExists) {
         const content = await readFile(testFile, "utf-8");
         expect(content.trim()).toBe(testContent);

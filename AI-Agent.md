@@ -45,7 +45,7 @@ AI-Agent/
 │   │   ├── task-memory.ts      # SQLite: tasks, nodes, edges, reflections
 │   │   ├── logger-service.ts   # event.* → pino file log
 │   │   ├── rag-service.ts     # Embeddings + SQLite; sqlite-vss KNN when available, else dot-product; memory.semantic.*, node.execute semantic_search
-│   │   ├── tool-host.ts        # shell, http_get, http_search; sandbox; tool.execute / node.execute tool
+│   │   ├── tool-host.ts        # shell, http_get (Playwright), http_search; sandbox; tool.execute / node.execute tool
 │   │   └── cron-manager.ts    # node-cron + SQLite schedules; event.cron.* to Logger
 │   └── shared/
 │       ├── config.ts           # Central config: config.json + env overrides

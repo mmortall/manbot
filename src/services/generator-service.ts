@@ -40,7 +40,10 @@ export class GeneratorService extends BaseProcess {
 
     const payload = envelope.payload as Record<string, unknown>;
     const p = payload as unknown as NodeExecutePayload;
-    if (p.type !== "generate_text" && p.type !== "generate" && p.type !== "summarize") {
+    // Accept generate_text, generate, summarize; also "model-router" (planner sometimes uses service name as type)
+    const isGenerate =
+      p.type === "generate_text" || p.type === "generate" || p.type === "summarize" || p.type === "model-router";
+    if (!isGenerate) {
       this.sendError(envelope, "UNSUPPORTED_TYPE", `Generator only handles generate_text, generate, summarize; got ${p.type}`);
       return;
     }
@@ -92,6 +95,9 @@ export class GeneratorService extends BaseProcess {
             prompt = `${p.input.prompt}\n\nContent:\n${depOutputs.join("\n\n")}`;
           } else {
             prompt = p.input.prompt;
+          }
+          if (typeof p.input?.system_prompt === "string") {
+            systemPrompt = p.input.system_prompt;
           }
         } else if (goal && (context["_criticFeedback"] != null || context["_previousDraft"] != null)) {
           const feedback = context["_criticFeedback"] as string | undefined;

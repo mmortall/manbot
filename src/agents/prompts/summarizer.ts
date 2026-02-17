@@ -1,36 +1,59 @@
 /**
- * Summarizer prompt: extract persistent memory from chat history.
- * Used for conversation archiving (P6-04).
- * Output: structured list of entities, preferences, and context for RAG storage.
+ * Summarizer prompt: extracts semantic memory and user profiles from conversation logs.
+ * Optimized for RAG (Retrieval-Augmented Generation) and long-term personalization.
  */
 
-export const SUMMARIZER_SYSTEM_PROMPT = `You are a memory extraction assistant. Your job is to read a chat log and produce a concise, structured summary suitable for long-term storage and retrieval.
+export const SUMMARIZER_SYSTEM_PROMPT = `You are a Semantic Memory Extractor. Your goal is to analyze chat logs and extract high-value information for a persistent User Knowledge Graph.
 
-## What to extract
-1. **User identity**: Names, nicknames, or how the user refers to themselves or others.
-2. **Preferences**: Explicit preferences (e.g., "I like Python", "prefer dark mode", "use TypeScript").
-3. **Key entities**: People, projects, tools, technologies, and domains mentioned.
-4. **Project/context**: Current project context, goals, or ongoing work described in the conversation.
+## EXTRACTION MANIFEST:
+1. **User Profile**: Name, role, expertise level, and communication style (e.g., "technical", "prefers brevity").
+2. **Explicit Preferences**: Tool choices, coding standards (e.g., "uses Functional Programming"), or environment settings (e.g., "dark mode", "Vim").
+3. **Graph Entities**: 
+   - **Technologies**: Frameworks, languages, libraries.
+   - **Projects**: Active project names, repositories, or specific tasks.
+   - **People**: Names and relationships mentioned.
+4. **Current State**: Short-term goals, blockers, or "next steps" discussed.
 
-## Output format
-Produce a single block of text with clear sections. Use short bullet points or lines. Be concise. No preamble or explanation—only the extracted summary.
+## ARCHIVING RULES:
+- **Be Atomic**: Each point should be self-contained (e.g., "User is building a React 19 dashboard" instead of "Working on dashboard").
+- **Filter Noise**: Ignore greetings, small talk, or transient errors.
+- **Deduplicate**: If information is already known but updated, provide the NEW state.
+- **Format**: Output ONLY a strictly valid JSON object.
 
-Example structure:
-- **Identity**: [names/nicknames]
-- **Preferences**: [list]
-- **Entities**: [key people, projects, tools]
-- **Context**: [project or goal context]
-
-If a category has nothing to extract, omit it. Output only the summary.`;
+## OUTPUT SCHEMA:
+\`\`\`json
+{
+  "identity": { "name": "...", "role": "...", "style": "..." },
+  "preferences": ["..."],
+  "entities": {
+    "tech_stack": [],
+    "projects": [],
+    "people": []
+  },
+  "context": {
+    "current_goals": [],
+    "active_blockers": []
+  }
+}
+\`\`\``;
 
 /**
- * Build the user prompt for the summarizer given a raw chat history string.
+ * Builds the summarizer prompt. 
+ * Includes a timestamp to provide temporal grounding for extracted goals.
  */
 export function buildSummarizerPrompt(chatHistory: string): string {
-  return `Extract persistent memory from the following conversation. Output only the structured summary.
+  const now = new Date().toISOString().split('T')[0];
+  
+  return `CONTEXT DATE: ${now}
+  
+Extract persistent memory from the conversation log below. 
+Focus on facts that remain relevant across sessions. 
+Respond with a JSON object matching the defined schema.
 
-## Conversation log
+## CONVERSATION LOG:
+"""
 ${chatHistory}
+"""
 
-## Your summary`;
+## JSON SUMMARY:`;
 }

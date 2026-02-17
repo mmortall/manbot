@@ -26,6 +26,34 @@ const PLAN_EXECUTE = "plan.execute";
 const NODE_EXECUTE = "node.execute";
 const PROCESS_NAME = "executor";
 
+/** Known service process names. Used as fallback when node.service is missing. */
+const KNOWN_SERVICES = new Set(["model-router", "tool-host", "rag-service", "critic-agent", "cron-manager"]);
+
+/** Map node.type to service when planner omits service or confuses type/service. */
+const TYPE_TO_SERVICE: Record<string, string> = {
+  generate_text: "model-router",
+  generate: "model-router",
+  summarize: "model-router",
+  tool: "tool-host",
+  semantic_search: "rag-service",
+  reflect: "critic-agent",
+  schedule_reminder: "cron-manager",
+  "model-router": "model-router", // planner sometimes uses service name as type
+  "tool-host": "tool-host",
+  "rag-service": "rag-service",
+  "critic-agent": "critic-agent",
+  "cron-manager": "cron-manager",
+};
+
+function resolveService(node: CapabilityNode): string {
+  if (node.service && typeof node.service === "string") return node.service;
+  const fromType = TYPE_TO_SERVICE[node.type];
+  if (fromType) return fromType;
+  // Last resort: if type looks like a service name, use it
+  if (KNOWN_SERVICES.has(node.type)) return node.type;
+  return "model-router"; // default for generation-like nodes
+}
+
 interface PlanExecutePayload {
   taskId: string;
   plan: CapabilityGraph;
@@ -367,11 +395,12 @@ export class ExecutorAgent extends BaseProcess {
       const nodeTimeoutMs = getConfig().executor.nodeTimeoutMs;
       // Note: Don't use console.log here as it goes to stdout and breaks JSON parsing
 
+      const service = resolveService(node);
       const payload: NodeExecutePayload = {
         taskId,
         nodeId: node.id,
         type: node.type,
-        service: node.service,
+        service,
         input: node.input ?? {},
         ...(Object.keys(context).length > 0 && { context }),
       };
@@ -379,7 +408,7 @@ export class ExecutorAgent extends BaseProcess {
         id,
         timestamp: Date.now(),
         from: PROCESS_NAME,
-        to: node.service,
+        to: service,
         type: NODE_EXECUTE,
         version: PROTOCOL_VERSION,
         payload,

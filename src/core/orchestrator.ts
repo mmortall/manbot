@@ -197,8 +197,9 @@ export class Orchestrator {
     }
   }
 
+  private static readonly MAX_PLAN_RETRIES = 2; // 3 attempts total (0, 1, 2)
+
   private async runTaskPipeline(chatId: number, userId: number, goal: string, conversationId?: string): Promise<void> {
-    const taskId = randomUUID();
     const planner = this.children.get("planner");
     const taskMemory = this.children.get("task-memory");
     const executor = this.children.get("executor");
@@ -207,48 +208,108 @@ export class Orchestrator {
       this.sendToTelegram(chatId, "Service unavailable.");
       return;
     }
-    this.sendToTelegram(chatId, "Planning started...", true);
+
     const plannerComplexity = getConfig().modelRouter.plannerComplexity;
-    const planReq = this.sendAndWait(planner, "plan.create", { goal, complexity: plannerComplexity });
-    let planEnv: Envelope;
-    try {
-      planEnv = await planReq;
-    } catch (errEnv) {
-      const err = errEnv as Envelope & { payload?: { message?: string } };
-      this.sendToTelegram(chatId, err.payload?.message ?? "Planning failed.");
+    let lastError: string = "";
+    let previousPlan: { nodes: unknown[]; edges?: unknown[] } | undefined;
+
+    for (let attempt = 0; attempt <= Orchestrator.MAX_PLAN_RETRIES; attempt++) {
+      const taskId = randomUUID();
+      const isRetry = attempt > 0;
+      if (isRetry) {
+        this.sendToTelegram(chatId, "Re-planning with error feedback...", true);
+      } else {
+        this.sendToTelegram(chatId, "Planning started...", true);
+      }
+
+      const planCreatePayload: Record<string, unknown> = {
+        goal,
+        complexity: plannerComplexity,
+      };
+      if (lastError) {
+        planCreatePayload.previousError = lastError;
+        if (previousPlan) planCreatePayload.previousPlan = previousPlan;
+      }
+
+      let planEnv: Envelope;
+      try {
+        planEnv = await this.sendAndWait(planner, "plan.create", planCreatePayload);
+      } catch (errEnv) {
+        const err = errEnv as Envelope & { payload?: { message?: string; details?: Record<string, unknown> } };
+        lastError = err.payload?.message ?? "Planning failed.";
+        const details = err.payload?.details;
+        if (details && typeof details === "object") {
+          const parts: string[] = [lastError];
+          if (details.nodeInput != null) parts.push(`Node input: ${JSON.stringify(details.nodeInput)}`);
+          if (details.originalErrorMessage != null) parts.push(String(details.originalErrorMessage));
+          lastError = parts.join(" ");
+        }
+        if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
+          this.sendToTelegram(chatId, lastError);
+          return;
+        }
+        continue;
+      }
+
+      const planPayload = planEnv.payload as { status?: string; result?: unknown };
+      const plan = planPayload.result as { nodes: unknown[]; edges?: unknown[] } | undefined;
+      if (!plan?.nodes || !Array.isArray(plan.nodes)) {
+        lastError = "Invalid plan from planner: missing or invalid nodes.";
+        if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
+          this.sendToTelegram(chatId, lastError);
+          return;
+        }
+        continue;
+      }
+
+      previousPlan = plan;
+      const nodes = plan.nodes as Array<{ id: string; type: string; service: string; input?: unknown }>;
+      const edges = (plan.edges ?? []) as Array<{ from: string; to: string }>;
+      const taskCreatePayload = {
+        taskId,
+        userId: String(userId),
+        conversationId: conversationId ?? String(chatId),
+        goal,
+        nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
+        edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),
+      };
+      this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => {});
+
+      this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
+      let execEnv: Envelope;
+      try {
+        execEnv = await this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId });
+      } catch (errEnv) {
+        const err = errEnv as Envelope & { payload?: { message?: string; details?: Record<string, unknown> } };
+        lastError = err.payload?.message ?? "Execution failed.";
+        const details = err.payload?.details;
+        if (details && typeof details === "object") {
+          const parts: string[] = [lastError];
+          if (details.nodeId != null) parts.push(`Node: ${details.nodeId}`);
+          if (details.nodeInput != null) parts.push(`Input: ${JSON.stringify(details.nodeInput)}`);
+          if (details.originalErrorMessage != null) parts.push(String(details.originalErrorMessage));
+          lastError = parts.join(". ");
+        }
+        if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
+          this.sendToTelegram(chatId, lastError);
+          return;
+        }
+        continue;
+      }
+
+      const execPayload = execEnv.payload as { status?: string; result?: { result?: unknown } };
+      const result = execPayload.result?.result;
+      const text =
+        typeof result === "string"
+          ? result
+          : result != null && typeof result === "object" && "text" in result
+            ? String((result as { text: unknown }).text)
+            : JSON.stringify(result ?? "Done.");
+      this.sendToTelegram(chatId, text);
       return;
     }
-    const planPayload = planEnv.payload as { status?: string; result?: unknown };
-    const plan = planPayload.result as { nodes: unknown[]; edges?: unknown[] } | undefined;
-    if (!plan?.nodes || !Array.isArray(plan.nodes)) {
-      this.sendToTelegram(chatId, "Invalid plan from planner.");
-      return;
-    }
-    const nodes = plan.nodes as Array<{ id: string; type: string; service: string; input?: unknown }>;
-    const edges = (plan.edges ?? []) as Array<{ from: string; to: string }>;
-    const taskCreatePayload = {
-      taskId,
-      userId: String(userId),
-      conversationId: conversationId ?? String(chatId),
-      goal,
-      nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
-      edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),
-    };
-    this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
-    this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
-    const execReq = this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId });
-    let execEnv: Envelope;
-    try {
-      execEnv = await execReq;
-    } catch (errEnv) {
-      const err = errEnv as Envelope & { payload?: { message?: string } };
-      this.sendToTelegram(chatId, err.payload?.message ?? "Execution failed.");
-      return;
-    }
-    const execPayload = execEnv.payload as { status?: string; result?: { result?: unknown } };
-    const result = execPayload.result?.result;
-    const text = typeof result === "string" ? result : result != null && typeof result === "object" && "text" in result ? String((result as { text: unknown }).text) : JSON.stringify(result ?? "Done.");
-    this.sendToTelegram(chatId, text);
+
+    this.sendToTelegram(chatId, lastError || "Task failed after retries.");
   }
 
   private async runArchivingPipeline(chatId: number, conversationId: string): Promise<void> {
