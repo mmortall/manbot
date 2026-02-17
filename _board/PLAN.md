@@ -46,13 +46,26 @@ This plan outlines the step-by-step implementation of the local multi-agent AI r
 - **[NEW] CI Build & Test Job**: Configure jobs to run `tsc` and `npm test` on every push to `main`.
 
 
+---
+
+### Phase 6: Conversation Management
+- **[UPDATE] RAG Service Persistence**: Update `RAGService` to persist semantic memory to an SQLite-based store instead of in-memory only.
+- **[UPDATE] Task Memory Schema**: Add `conversation_id` to `tasks` table in `TaskMemory` to group tasks into chat sessions.
+- **[UPDATE] Telegram Adapter Commands**: Implement `/new` command to trigger conversation archiving and session reset.
+- **[UPDATE] Orchestrator Archiving Flow**: Implement logic to handle `chat.new` events:
+    - Get history of the current conversation.
+    - specialized "Memory Agent" node to summarize and extract key info.
+    - Store the extracted info in `RAGService`.
+    - Reset the `conversation_id` in `Telegram Adapter` state.
+
 ## Verification Plan
 
 ### Automated Tests
-- Unit tests for protocol serialization/deserialization.
-- Integration tests for Task Memory persistence.
-- Mock agent communication tests.
+- Integration test for `RAGService` persistence (verify data survives restart).
+- Unit test for `/new` command parsing in `Telegram Adapter`.
+- Integration test for Orchestrator's archiving flow (mock LLM response for summary).
 
 ### Manual Verification
-- Verify sub-process spawning and communication via logs.
-- Test end-to-end task execution from a mock trigger to final output.
+- Send messages to Telegram bot, then send `/new`.
+- Verify bot responds that previous conversation is archived.
+- Send a follow-up question that might benefit from memory (if context injection is implemented) or check the RAG database manually.

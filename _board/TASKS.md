@@ -35,3 +35,15 @@
 - [ ] **P4-04**: Implement semantic search node for the capability graph.
 - [ ] **P4-05**: Build `Tool Host` with basic file-system tools.
 - [ ] **P4-06**: Implement `Cron Manager` for background maintenance and scheduled tasks.
+
+## Phase 6: Conversation Management
+- [ ] **P6-01**: Update `RAGService` to use `SQLite` for persistent embedding storage.
+- [ ] **P6-02**: Update `TaskMemory` schema to include `conversation_id` in `tasks` table.
+- [ ] **P6-03**: Update `Telegram Adapter` to handle `/new` command and track session IDs.
+- [ ] **P6-04**: Add `Summarizer Agent` or specialized prompt for extracting important info from chat history.
+- [ ] **P6-05**: Implement `chat.new` orchestration flow in `Orchestrator`:
+    - Fetch tasks for old `conversation_id`.
+    - Run summary/extraction.
+    - Store result in `RAGService`.
+- [ ] **P6-06**: Write integration tests for the full archiving cycle.
+
