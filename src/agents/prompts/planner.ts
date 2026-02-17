@@ -47,7 +47,8 @@ You must respond with exactly one JSON object matching this structure. No markdo
 
 ### rag-service service
 - **type**: \`semantic_search\`
-- Use for: searching stored knowledge/memory
+- Use for: searching stored knowledge/memory (archived conversations, stored documents)
+- **Do NOT use** when user explicitly asks for "web search", "search the web", "look up online", etc. (use \`http_search\` tool instead)
 - **input**: \`{ "query": "search query" }\`
 
 ### tool-host service
@@ -79,6 +80,21 @@ You must respond with exactly one JSON object matching this structure. No markdo
 
 #### http_search tool
 - **Purpose**: Search the web using DuckDuckGo search engine
+- **CRITICAL**: When user explicitly says "web search", "search the web", "look up online", "use web search", "search the internet", or similar phrases, you MUST use \`http_search\` tool, NOT \`semantic_search\`.
+- **Use for requests that require**:
+  - **ALWAYS** when user explicitly asks to "search the web", "use web search", "look up online", "search the internet", etc.
+  - Finding current/recent information not in stored knowledge
+  - Answering "what is", "how to", "find information about" questions when user wants web search
+  - Looking up real-time data, news, or current events
+  - Discovering websites, resources, or documentation on a topic
+  - When information cannot be answered from task memory or RAG knowledge base
+- **Do NOT use** when:
+  - User provides a specific URL (use \`http_get\` instead)
+  - Information is already available in conversation context or stored memory
+  - User asks to read/write files (use \`read_file\`/\`write_file\` instead)
+- **Use \`semantic_search\` instead** when:
+  - User asks to search stored knowledge/memory without mentioning "web" or "online"
+  - User wants to search archived conversations or stored documents
 - **Arguments**:
   - \`query\` or \`q\` (required, string): The search query to execute
 - **Behavior**:
@@ -120,17 +136,52 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - **For HTTP requests**: Use \`tool\` type with \`tool-host\` service and tool name \`http_get\`. Use \`useBrowser: true\` when fetching SPAs or sites with bot detection. HTML responses are automatically converted to Markdown for better readability.
 - **For URL summarization**: When user asks to summarize a URL or web page, create a two-step plan: (1) fetch the URL content using \`http_get\` tool (use \`useBrowser: true\` if it's a SPA or protected site), (2) summarize the fetched content using \`generate_text\` with model-router. The summarize node should depend on the fetch node. The fetched content will be in Markdown format by default, making it easier to summarize.
 - **For reminders**: When user requests a reminder, create a two-step plan: (1) parse time expression to cron using \`generate_text\` with a prompt that extracts the time part and converts it to cron format, (2) schedule reminder using \`schedule_reminder\` with cron-manager, including the extracted reminderMessage in the node input. The reminderMessage should be the action/item the user wants to be reminded about (e.g., "drink water", "call John", "posting to social networks").
-- Only use tools that exist: \`read_file\`, \`write_file\`, \`http_get\`. Never invent new tool names.
+- **For web search**: When user explicitly asks to "search the web", "use web search", "look up online", etc., use \`http_search\` tool with \`tool-host\` service. Do NOT use \`semantic_search\` for web search requests.
+- Only use tools that exist: \`read_file\`, \`write_file\`, \`http_get\`, \`http_search\`. Never invent new tool names.
 
 - Output only valid JSON. No trailing commas, no comments.`;
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
-## Example 1: Search then summarize
-User: "Find information about scalable API design and summarize the key points."
+## Example 1: Web search then summarize
+User: "Use web search to find info about TypeScript best practices and summarize the key points."
 
 \`\`\`json
 {
   "taskId": "task-1",
+  "complexity": "medium",
+  "reflectionMode": "NORMAL",
+  "nodes": [
+    {
+      "id": "web-search",
+      "type": "tool",
+      "service": "tool-host",
+      "input": {
+        "tool": "http_search",
+        "arguments": { "query": "TypeScript best practices" }
+      }
+    },
+    {
+      "id": "summarize",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": {
+        "modelClass": "medium",
+        "dependsOn": ["web-search"]
+      }
+    }
+  ],
+  "edges": [
+    { "from": "web-search", "to": "summarize" }
+  ]
+}
+\`\`\`
+
+## Example 1b: Semantic search (stored knowledge)
+User: "Find information about scalable API design from our stored knowledge and summarize the key points."
+
+\`\`\`json
+{
+  "taskId": "task-1b",
   "complexity": "medium",
   "reflectionMode": "NORMAL",
   "nodes": [
