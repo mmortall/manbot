@@ -2,15 +2,6 @@
 
 ## To Do
 
-### P6-03 Telegram /new Command and Session Tracking
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Implement the /new command in Telegram Adapter to reset the current session and trigger archiving.
-    
-    Source: P6-03_TELEGRAM_NEW_COMMAND.md
-    ```
-
 ### P6-04 Specialized Summarizer Prompt and Node
   - tags: [todo]
   - defaultExpanded: false
@@ -41,6 +32,15 @@
 ## In Progress
 
 ## Done
+
+### P6-03 Telegram /new Command and Session Tracking
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Implement the /new command in Telegram Adapter to reset the current session and trigger archiving.
+    
+    Source: P6-03_TELEGRAM_NEW_COMMAND.md
+    ```
 
 ### P6-02 Add conversation_id to TaskMemory Schema
   - tags: [done]

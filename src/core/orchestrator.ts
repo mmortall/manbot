@@ -94,12 +94,17 @@ export class Orchestrator {
   private handleCoreMessage(fromProcess: string, envelope: Envelope): void {
     const type = envelope.type;
     const payload = envelope.payload as Record<string, unknown>;
+    if (type === "chat.new" && fromProcess === "telegram-adapter") {
+      // P6-05 will run archiving pipeline; for now just acknowledge receipt
+      return;
+    }
     if (type === "task.create" && fromProcess === "telegram-adapter") {
       const goal = payload.goal as string | undefined;
       const chatId = payload.chatId as number | undefined;
       const userId = payload.userId as number | undefined;
       if (goal != null && chatId != null) {
-        this.runTaskPipeline(chatId, userId ?? 0, goal).catch((err) => {
+        const conversationId = payload.conversationId as string | undefined;
+        this.runTaskPipeline(chatId, userId ?? 0, goal, conversationId).catch((err) => {
           process.stderr.write(`Orchestrator pipeline error: ${err}\n`);
           this.sendToTelegram(chatId, `Error: ${err instanceof Error ? err.message : String(err)}`);
         });
@@ -107,7 +112,7 @@ export class Orchestrator {
     }
   }
 
-  private async runTaskPipeline(chatId: number, userId: number, goal: string): Promise<void> {
+  private async runTaskPipeline(chatId: number, userId: number, goal: string, conversationId?: string): Promise<void> {
     const taskId = randomUUID();
     const planner = this.children.get("planner");
     const taskMemory = this.children.get("task-memory");
@@ -137,7 +142,7 @@ export class Orchestrator {
     const taskCreatePayload = {
       taskId,
       userId: String(userId),
-      conversationId: String(chatId),
+      conversationId: conversationId ?? String(chatId),
       goal,
       nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
       edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),

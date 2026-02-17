@@ -29,8 +29,16 @@ export interface TelegramTaskCreatePayload {
   chatId: number;
   userId: number;
   username?: string;
+  /** Current conversation/session ID for grouping tasks. */
+  conversationId: string;
   goal: string;
   messageId: number;
+}
+
+/** Payload for chat.new event (session reset / archiving trigger) */
+export interface ChatNewPayload {
+  chatId: number;
+  conversationId: string;
 }
 
 /** Payload for messages from Core instructing the adapter to send to Telegram */
@@ -73,7 +81,20 @@ function createEnvelope<T>(type: string, to: string, payload: T): Envelope<T> {
 const HELP_TEXT = `Commands:
 /start — Welcome and brief intro
 /task [goal] — Start a new task with optional goal text
+/new — Start a new conversation (previous one will be archived)
 /help — Show this help`;
+
+/** chatId -> current conversation ID for session grouping */
+const conversationIdByChat = new Map<number, string>();
+
+function getOrCreateConversationId(chatId: number): string {
+  let id = conversationIdByChat.get(chatId);
+  if (id == null) {
+    id = randomUUID();
+    conversationIdByChat.set(chatId, id);
+  }
+  return id;
+}
 
 function main(): void {
   const token = getConfig().telegram.botToken;
@@ -130,6 +151,23 @@ function main(): void {
       return;
     }
 
+    // /new — reset session and trigger archiving
+    if (text === "/new") {
+      const oldConversationId = conversationIdByChat.get(chatId);
+      const newConversationId = randomUUID();
+      conversationIdByChat.set(chatId, newConversationId);
+      if (oldConversationId != null) {
+        base.send(
+          createEnvelope<ChatNewPayload>("chat.new", "core", {
+            chatId,
+            conversationId: oldConversationId,
+          })
+        );
+      }
+      sendToUser(chatId, "New session started. Previous conversation has been archived.");
+      return;
+    }
+
     // /task [goal] — if goal is provided, create task; else show usage
     if (text.startsWith("/task")) {
       const goal = text.slice(5).trim();
@@ -140,6 +178,7 @@ function main(): void {
       const payload: TelegramTaskCreatePayload = {
         chatId,
         userId: from.id,
+        conversationId: getOrCreateConversationId(chatId),
         messageId: msg.message_id ?? 0,
         goal,
         ...(from.username !== undefined && from.username !== "" && { username: from.username }),
@@ -153,6 +192,7 @@ function main(): void {
     const taskPayload: TelegramTaskCreatePayload = {
       chatId,
       userId: from.id,
+      conversationId: getOrCreateConversationId(chatId),
       messageId: msg.message_id ?? 0,
       goal: text,
       ...(from.username !== undefined && from.username !== "" && { username: from.username }),
