@@ -29,6 +29,8 @@ export interface LoggerConfig {
 
 export interface RagConfig {
   embedModel: string;
+  /** SQLite database path for RAG document storage. */
+  dbPath: string;
 }
 
 export interface ToolHostConfig {
@@ -76,6 +78,7 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   rag: {
     embedModel: "nomic-embed-text",
+    dbPath: "data/rag.sqlite",
   },
   toolHost: {
     sandboxDir: process.cwd(),
@@ -123,6 +126,7 @@ function mergeEnv(config: AppConfig): AppConfig {
     },
     rag: {
       embedModel: process.env.RAG_EMBED_MODEL ?? config.rag.embedModel,
+      dbPath: process.env.RAG_DB ?? config.rag.dbPath,
     },
     toolHost: {
       sandboxDir: process.env.TOOL_SANDBOX_DIR ?? config.toolHost.sandboxDir,

@@ -2,9 +2,63 @@
 
 ## To Do
 
+### P6-02 Add conversation_id to TaskMemory Schema
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update the tasks table schema to include a conversation_id column to group tasks by chat session.
+    
+    Source: P6-02_TASK_MEMORY_SCHEMA_CONV_ID.md
+    ```
+
+### P6-03 Telegram /new Command and Session Tracking
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Implement the /new command in Telegram Adapter to reset the current session and trigger archiving.
+    
+    Source: P6-03_TELEGRAM_NEW_COMMAND.md
+    ```
+
+### P6-04 Specialized Summarizer Prompt and Node
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Create a specialized system prompt and capability node for extracting persistent memory from chat history.
+    
+    Source: P6-04_SUMMARIZER_PROMPT_AGENT.md
+    ```
+
+### P6-05 Orchestrate Conversation Archiving
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Implement the logic in Orchestrator to handle chat.new and run the archiving pipeline.
+    
+    Source: P6-05_CHAT_NEW_ORCHESTRATION.md
+    ```
+
+### P6-06 End-to-End Archiving Integration Test
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Write an integration test that verifies the full conversation archiving flow.
+    
+    Source: P6-06_ARCHIVING_INTEGRATION_TESTS.md
+    ```
+
 ## In Progress
 
 ## Done
+
+### P6-01 SQLite Persistence for RAG Service
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Update the RAGService to use SQLite for persistent embedding storage instead of in-memory array.
+    
+    Source: P6-01_RAG_SQLITE_PERSISTENCE.md
+    ```
 
 ### P5-01 Configure GitHub Actions Workflow
 
