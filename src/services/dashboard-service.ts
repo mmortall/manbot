@@ -282,12 +282,13 @@ export class DashboardService extends BaseProcess {
     }
 
     private getStats() {
-        const stats: any = { tasks: {}, complexity: { low: 0, medium: 0, high: 0 }, rag: 0, cron: 0, logs: [] };
+        const stats: any = { tasks: {}, complexity: { low: 0, medium: 0, high: 0, unknown: 0 }, rag: 0, cron: 0, logs: [] };
         try {
             const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'), { readonly: true });
             tdb.prepare('SELECT status, count(*) as c FROM tasks GROUP BY status').all().forEach((r: any) => stats.tasks[r.status] = r.c);
-            tdb.prepare('SELECT complexity, count(*) as c FROM tasks WHERE complexity IS NOT NULL GROUP BY complexity').all().forEach((r: any) => {
-                if (r.complexity) stats.complexity[r.complexity.toLowerCase()] = r.c;
+            tdb.prepare('SELECT complexity, count(*) as c FROM tasks GROUP BY complexity').all().forEach((r: any) => {
+                const key = r.complexity ? r.complexity.toLowerCase() : 'unknown';
+                stats.complexity[key] = (stats.complexity[key] || 0) + r.c;
             });
             tdb.close();
         } catch (e) { }
@@ -316,7 +317,7 @@ export class DashboardService extends BaseProcess {
 
     private generateDonutChart(data: any, size = 200) {
         const total = Object.values(data).reduce((a: any, b: any) => a + b, 0) as number;
-        if (!total) return `<svg viewBox="0 0 ${size} ${size}"><text x="50%" y="50%" text-anchor="middle" fill="var(--text-muted)">No Data</text></svg>`;
+        if (!total) return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><text x="50%" y="50%" text-anchor="middle" fill="#8b8b8b">No Data</text></svg>`;
         const radius = 75, circumference = 2 * Math.PI * radius;
         let offset = 0;
         const colors: any = { completed: '#0b6e4f', failed: '#df2a5f', pending: '#d9730d', running: '#2383e2' };
@@ -325,20 +326,19 @@ export class DashboardService extends BaseProcess {
             offset += p * circumference;
             return `<circle cx="100" cy="100" r="${radius}" fill="transparent" stroke="${colors[k] || '#2383e2'}" stroke-width="25" stroke-dasharray="${dash}" stroke-dashoffset="${currentOffset}" transform="rotate(-90 100 100)"></circle>`;
         }).join('');
-        return `<svg viewBox="0 0 200 200">${slices}<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="var(--text)" font-size="28" font-weight="700">${total}</text></svg>`;
+        return `<svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">${slices}<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="currentColor" font-size="28" font-weight="700">${total}</text></svg>`;
     }
 
     private generateBarChart(labels: string[], values: number[], width = 400, height = 200) {
-        if (!labels.length) return `<svg viewBox="0 0 ${width} ${height}"><text x="50%" y="50%" text-anchor="middle" fill="var(--text-muted)">No Complexity Data</text></svg>`;
         const max = Math.max(...values, 1), barWidth = (width / labels.length) * 0.5, gap = (width / labels.length) * 0.5;
         const bars = labels.map((l, i) => {
             const val = values[i] ?? 0;
             const h = (val / max) * 120, x = i * (barWidth + gap) + gap / 2;
-            return `<rect x="${x}" y="${160 - h}" width="${barWidth}" height="${h}" fill="var(--primary)" rx="4"></rect>` +
-                `<text x="${x + barWidth / 2}" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">${l}</text>` +
-                `<text x="${x + barWidth / 2}" y="${150 - h}" text-anchor="middle" fill="var(--text)" font-size="10">${val}</text>`;
+            return `<rect x="${x}" y="${160 - h}" width="${barWidth}" height="${h}" fill="#2ea7ff" rx="4"></rect>` +
+                `<text x="${x + barWidth / 2}" y="180" text-anchor="middle" fill="#8b8b8b" font-size="10">${l}</text>` +
+                `<text x="${x + barWidth / 2}" y="${150 - h}" text-anchor="middle" fill="currentColor" font-size="10">${val}</text>`;
         }).join('');
-        return `<svg viewBox="0 0 ${width} ${height}">${bars}</svg>`;
+        return `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
     }
 
     private getHTML() {
@@ -367,8 +367,8 @@ export class DashboardService extends BaseProcess {
                 <div class="metric-value" id="task-total">0</div>
             </div>
             <div class="card">
-                <h2>RAG Size</h2>
-                <div class="metric-value" id="rag-count">0</div>
+                <h2>Knowledge Base</h2>
+                <div class="metric-value"><span id="rag-count">0</span> <small style="font-size: 14px; font-weight: 400; color: var(--text-muted);">docs</small></div>
             </div>
             <div class="card">
                 <h2>Active Schedules</h2>
