@@ -2,14 +2,6 @@
 
 ## To Do
 
-### DB-01 Initial Setup and Basic Server
-  - tags: [todo, infra]
-  - defaultExpanded: false
-    ```md
-    Initialize the /stats directory and create the basic Node.js HTTP server.
-    
-    Source: DB-01_INITIAL_SETUP.md
-    ```
 
 ### DB-02 SQLite and Log Data Extraction
   - tags: [todo, data]
@@ -63,7 +55,18 @@
 
 
 
+
 ## Done
+
+### DB-01 Initial Setup and Basic Server
+  - tags: [done, infra]
+  - defaultExpanded: false
+    ```md
+    Initialize the /stats directory and create the basic Node.js HTTP server.
+    
+    Source: DB-01_INITIAL_SETUP.md
+    ```
+
 
 ### SK-RS-05 E2E Verification of Research Skill
   - tags: [done, qa]
