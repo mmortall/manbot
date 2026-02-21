@@ -303,7 +303,7 @@ export class Orchestrator {
       }
 
       const planPayload = planEnv.payload as { status?: string; result?: unknown };
-      const plan = planPayload.result as { nodes: unknown[]; edges?: unknown[] } | undefined;
+      const plan = planPayload.result as { nodes: unknown[]; edges?: unknown[]; complexity?: string } | undefined;
       if (!plan?.nodes || !Array.isArray(plan.nodes)) {
         lastError = "Invalid plan from planner: missing or invalid nodes.";
         if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
@@ -321,6 +321,7 @@ export class Orchestrator {
         userId: String(userId),
         conversationId: conversationId ?? String(chatId),
         goal,
+        complexity: plan.complexity,
         nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
         edges: edges
           .filter((e) => e && typeof e === "object" && e.from && e.to)
