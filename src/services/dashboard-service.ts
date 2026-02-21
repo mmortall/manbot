@@ -100,7 +100,7 @@ const CSS = `
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     margin-bottom: 40px;
   }
@@ -209,8 +209,28 @@ const CSS = `
     background: var(--subtle);
   }
 
+  .log-details {
+    display: none;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--subtle);
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border: 1px solid var(--border);
+  }
+
+  tr:hover .log-details {
+    display: block;
+  }
+
   @media (max-width: 768px) {
-    .grid, .charts-grid {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .charts-grid {
       grid-template-columns: 1fr;
     }
     .container {
@@ -282,7 +302,7 @@ export class DashboardService extends BaseProcess {
     }
 
     private getStats() {
-        const stats: any = { tasks: {}, complexity: { low: 0, medium: 0, high: 0, unknown: 0 }, rag: 0, cron: 0, logs: [] };
+        const stats: any = { tasks: {}, complexity: { low: 0, medium: 0, high: 0, unknown: 0 }, rag: 0, cron: 0, logs: [], maxNodes: 0 };
         try {
             const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'), { readonly: true });
             tdb.prepare('SELECT status, count(*) as c FROM tasks GROUP BY status').all().forEach((r: any) => stats.tasks[r.status] = r.c);
@@ -290,6 +310,8 @@ export class DashboardService extends BaseProcess {
                 const key = r.complexity ? r.complexity.toLowerCase() : 'unknown';
                 stats.complexity[key] = (stats.complexity[key] || 0) + r.c;
             });
+            const peak = tdb.prepare('SELECT MAX(cnt) as m FROM (SELECT count(*) as cnt FROM task_nodes GROUP BY task_id)').get() as { m: number } | undefined;
+            stats.maxNodes = peak ? peak.m : 0;
             tdb.close();
         } catch (e) { }
         try {
@@ -374,6 +396,10 @@ export class DashboardService extends BaseProcess {
                 <h2>Active Schedules</h2>
                 <div class="metric-value" id="cron-count">0</div>
             </div>
+            <div class="card">
+                <h2>Peak Nodes</h2>
+                <div class="metric-value" id="max-nodes">0</div>
+            </div>
         </div>
 
         <div class="chart-section">
@@ -415,6 +441,7 @@ export class DashboardService extends BaseProcess {
                 document.getElementById("task-total").textContent = total;
                 document.getElementById("rag-count").textContent = d.rag;
                 document.getElementById("cron-count").textContent = d.cron;
+                document.getElementById("max-nodes").textContent = d.maxNodes || 0;
                 
                 document.getElementById("c1").innerHTML = d.charts.taskDonut;
                 document.getElementById("c2").innerHTML = d.charts.compBar;
@@ -422,11 +449,16 @@ export class DashboardService extends BaseProcess {
                 document.getElementById("lt").innerHTML = d.logs.map(l => {
                     const tc = l.type?.includes("failed") ? "error" : (l.type?.includes("completed") ? "success" : "warning");
                     const typeLabel = (l.type || "EVENT").split(".").pop();
-                    const content = l.payload?.toolName || l.payload?.nodeId || l.message || "-";
+                    const mainContent = l.payload?.toolName || l.payload?.nodeId || l.message || "-";
+                    const args = l.payload ? JSON.stringify(l.payload, null, 2) : "";
+                    
                     return \`<tr>
-                        <td style="padding-left: 20px; color: var(--text-muted);">\${new Date(l.time || Date.now()).toLocaleTimeString()}</td>
-                        <td><span class="tag \${tc}">\${typeLabel}</span></td>
-                        <td style="padding-right: 20px; color: var(--text-muted); font-family: monospace; font-size: 13px;">\${content}</td>
+                        <td style="padding-left: 20px; color: var(--text-muted); vertical-align: top; padding-top: 12px;">\${new Date(l.time || Date.now()).toLocaleTimeString()}</td>
+                        <td style="vertical-align: top; padding-top: 12px;"><span class="tag \${tc}">\${typeLabel}</span></td>
+                        <td style="padding-right: 20px; color: var(--text-muted); font-family: monospace; font-size: 13px;">
+                          <div style="font-weight: 600; color: var(--text); padding-top: 2px;">\${mainContent}</div>
+                          \${args ? \`<div class="log-details">\${args}</div>\` : ""}
+                        </td>
                     </tr>\`;
                 }).join("");
             });
