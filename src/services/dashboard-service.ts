@@ -377,7 +377,7 @@ export class DashboardService extends BaseProcess {
     private getStats() {
         const stats: any = {
             tasks: {},
-            complexity: { small: 0, medium: 0, high: 0, unknown: 0 },
+            complexity: { small: 0, medium: 0, large: 0, unknown: 0 },
             rag: 0,
             cron: 0,
             logs: [],
