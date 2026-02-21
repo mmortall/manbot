@@ -324,6 +324,11 @@ export class DashboardService extends BaseProcess {
             });
             const peak = tdb.prepare('SELECT MAX(cnt) as m FROM (SELECT count(*) as cnt FROM task_nodes GROUP BY task_id)').get() as { m: number } | undefined;
             stats.maxNodes = peak ? peak.m : 0;
+
+            const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+            stats.pendingTasks = tdb.prepare('SELECT id, goal, status, updated_at FROM tasks WHERE status IN (?, ?) AND updated_at > ? ORDER BY updated_at DESC')
+                .all('pending', 'running', twoHoursAgo);
+
             tdb.close();
         } catch (e) { }
         try {
@@ -428,6 +433,22 @@ export class DashboardService extends BaseProcess {
             </div>
         </div>
 
+        <div class="logs-section" id="active-queue-section" style="margin-bottom: 60px; display: none;">
+            <h3>Active Tasks Queue</h3>
+            <div class="card" style="padding: 0;">
+                <table id="queue-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 20px;">UPDATED</th>
+                            <th>STATUS</th>
+                            <th style="padding-right: 20px;">GOAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="qt"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="logs-section">
             <h3>Recent Intelligence Pipeline</h3>
             <div class="card" style="padding: 0;">
@@ -457,6 +478,23 @@ export class DashboardService extends BaseProcess {
                 
                 document.getElementById("c1").innerHTML = d.charts.taskDonut;
                 document.getElementById("c2").innerHTML = d.charts.compBar;
+
+                // Active Queue
+                const qt = document.getElementById("qt");
+                const qs = document.getElementById("active-queue-section");
+                if (d.pendingTasks && d.pendingTasks.length > 0) {
+                    qs.style.display = "block";
+                    qt.innerHTML = d.pendingTasks.map(t => {
+                        const tc = t.status === 'running' ? "success" : "warning";
+                        return \`<tr>
+                            <td style="padding-left: 20px; color: var(--text-muted);">\${new Date(t.updated_at).toLocaleTimeString()}</td>
+                            <td><span class="tag \${tc}">\${t.status.toUpperCase()}</span></td>
+                            <td style="padding-right: 20px; font-weight: 500;">\${t.goal}</td>
+                        </tr>\`;
+                    }).join("");
+                } else {
+                    qs.style.display = "none";
+                }
                 
                 document.getElementById("lt").innerHTML = d.logs.map(l => {
                     const tc = l.type?.includes("failed") ? "error" : (l.type?.includes("completed") ? "success" : "warning");
