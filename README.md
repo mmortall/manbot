@@ -102,6 +102,30 @@ npx playwright install chromium
 
 This downloads Chromium (~250MB) to enable browser-based web scraping with stealth capabilities.
 
+## Setup for Windows 10 (Miniconda)
+
+For a stable and isolated environment on Windows 10, it is recommended to use **Miniconda**.
+
+1. **Install Miniconda**: Download and install from [conda.io](https://docs.conda.io/en/latest/miniconda.html).
+2. **Create Environment**:
+   ```bash
+   conda env create -f environment.yml
+   conda activate manbot
+   ```
+3. **Install Dependencies**:
+   ```bash
+   npm install
+   npx playwright install chromium
+   ```
+4. **FFmpeg & CMake**: These are already included in the `environment.yml`. They are required for audio processing (Whisper) and native module compilation.
+5. **C++ Build Tools**: For Whisper transcription, you must have **Visual Studio Build Tools** installed with the **"Desktop development with C++"** workload.
+
+### Lynx support (Windows)
+Since `lynx` is not natively available on Windows, ManBot includes a **Lynx Shim** (`lynx.cmd` and `src/utils/lynx-shim.ts`). 
+- It uses Playwright to fetch web pages.
+- It uses Turndown to convert HTML to the `-dump` format expected by the Research skill.
+- The Orchestrator automatically adds the project root to the `PATH` of child processes to make `lynx` discoverable.
+
 ## Run
 
 ### Full pipeline (Orchestrator + all agents and services)
