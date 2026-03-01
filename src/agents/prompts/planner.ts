@@ -46,11 +46,17 @@ The "tool-host" service supports ONLY these 3 names in the "tool" field:
 - **Acyclic**: Ensure no circular dependencies.
 - **Start Node**: At least one node must have no "from" edges.
 
-## 4. VALIDATION CHECKLIST
+## 4. LANGUAGE CONSTRAINT (MANDATORY)
+- **INTERNAL LOGIC**: All intermediate "generate_text" prompts, "skill" instructions, and "tool" arguments MUST be in **English**. This ensures technical precision.
+- **FINAL OUTPUT**: The final "generate_text" node (analyzer) MUST respond in the **SAME LANGUAGE as the user's goal**. 
+- Even if research results are in English, the final answer to the user must be translated to their original language.
+
+## 5. VALIDATION CHECKLIST
 - Is the JSON syntax perfect?
 - Is every "tool" name valid (not 'ls' or 'google')?
 - Are all node IDs unique?
 - Does the "to" in edges point to an existing "id"?
+- Is the output language of the final node matching the user's request language?
 </instructions>
 
 <output_format>

@@ -25,7 +25,7 @@ Extract only "sticky" information—facts, preferences, and entities that have l
 - **Atomic Entities**: Each entry must be a standalone fact.
 - **Noise Reduction**: Discard temporal data like "hello", "thanks", or transient debugging steps unless they reveal a permanent preference.
 - **Deduplication**: Do not repeat existing information; only provide updates or new discoveries.
-- **Response Language**: ALWAYS respond in the same language as the user request.
+- **Response Language**: ALWAYS respond in **English** (since this is internal system memory), regardless of the input language.
 
 ## 3. OUTPUT GUIDELINES:
 - Output ONLY a raw JSON object. 
