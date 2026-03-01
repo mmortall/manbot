@@ -60,10 +60,16 @@ export class Orchestrator {
   }
 
   private spawnProcess(name: string, scriptPath: string): ChildEntry {
+    ConsoleLogger.info("core", `Spawning child process: ${name} [${scriptPath}]`);
+    const childEnv = { ...process.env };
+    // Add ROOT to PATH so lynx.cmd is discoverable
+    const pathKey = process.platform === "win32" ? "Path" : "PATH";
+    childEnv[pathKey] = `${ROOT};${childEnv[pathKey]}`;
+
     const child = spawn("node", [scriptPath], {
       cwd: ROOT,
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env },
+      env: childEnv,
     });
     const stdin = child.stdin!;
     const rl = createInterface({ input: child.stdout!, terminal: false });
@@ -890,8 +896,10 @@ export class Orchestrator {
     });
 
     for (const [name, scriptPath] of Object.entries(PROCESS_SCRIPTS)) {
+      ConsoleLogger.info("core", `Auto-starting service: ${name}`);
       this.spawnProcess(name, scriptPath);
     }
+
     // Non-blocking pre-warm of small and medium models.
     ConsoleLogger.info("core", "Model prewarming started...");
     this.modelManager.prewarmModels()

@@ -1,0 +1,12 @@
+name: manbot
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - nodejs=20
+  - ffmpeg
+  - cmake
+  - git
+  - pip
+  - pip:
+    - # No python pip dependencies needed for core, but keeping for completeness

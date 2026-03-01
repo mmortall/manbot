@@ -17,6 +17,7 @@ import { BaseProcess } from "../shared/base-process.js";
 import { getConfig } from "../shared/config.js";
 import { classifyMimeType } from "../shared/file-protocol.js";
 import type { FileIngestPayload, FileDescriptor } from "../shared/file-protocol.js";
+import { ConsoleLogger } from "../utils/console-logger.js";
 
 const PROCESS_NAME = "telegram-adapter";
 
@@ -123,15 +124,27 @@ function getOrCreateConversationId(chatId: number): string {
 }
 
 function main(): void {
+  ConsoleLogger.info(PROCESS_NAME, "Starting Telegram adapter...");
   const token = getConfig().telegram.botToken;
   if (!token) {
-    console.error("Telegram bot token is required. Set telegram.botToken in config.json or TELEGRAM_BOT_TOKEN.");
+    ConsoleLogger.error(
+      PROCESS_NAME,
+      "Telegram bot token is required. Set telegram.botToken in config.json or TELEGRAM_BOT_TOKEN."
+    );
     process.exit(1);
   }
+  ConsoleLogger.info(PROCESS_NAME, `Bot token found: ${token.substring(0, 5)}...`);
 
   const allowedUserIds = getAllowedUserIds();
+  ConsoleLogger.info(
+    PROCESS_NAME,
+    `Allowed user IDs: ${allowedUserIds ? Array.from(allowedUserIds).join(", ") : "All"}`
+  );
+
+  ConsoleLogger.info(PROCESS_NAME, "Initializing TelegramBot with polling...");
   const bot = new TelegramBot(token, { polling: true });
   const base = new BaseProcess({ processName: PROCESS_NAME });
+  ConsoleLogger.info(PROCESS_NAME, "TelegramBot initialized.");
 
   async function sendToUser(
     chatId: number,
@@ -161,6 +174,10 @@ function main(): void {
     const chatId = msg.chat?.id;
     const from = msg.from;
     const text = msg.text?.trim();
+    ConsoleLogger.info(
+      PROCESS_NAME,
+      `Incoming message from ${from?.username || from?.id} (chatId: ${chatId}): ${text || "[FILES]"}`
+    );
     if (chatId == null || from == null) return;
 
     // Authentication: allow-list of Telegram user IDs (optional)

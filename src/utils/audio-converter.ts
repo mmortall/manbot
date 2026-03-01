@@ -10,6 +10,8 @@
  */
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import ffmpegPathRaw from "ffmpeg-static";
 
 /** Timeout for audio conversion operations (60 seconds). */
@@ -29,13 +31,38 @@ export async function convertToWav(
     outputPath: string,
 ): Promise<void> {
     // ffmpeg-static returns null when no binary is available for the platform
-    const ffmpegBin = (ffmpegPathRaw as unknown) as string | null;
-    if (!ffmpegBin) {
-        throw new Error(
-            "audio-converter: ffmpeg-static binary not available on this platform. " +
-            "Cannot convert audio for transcription.",
-        );
+    let ffmpegBin = (ffmpegPathRaw as unknown) as string | null;
+
+    // Fallback search order for Windows environments
+    if (!ffmpegBin || !existsSync(ffmpegBin)) {
+        const fallbacks = [
+            // Conda environment bin (sometimes missing DLLs if not fully activated)
+            resolve(process.env.CONDA_PREFIX || "", "Library/bin/ffmpeg.exe"),
+            // Well-known static locations on this machine
+            "C:\\Program Files\\ShareX\\ffmpeg.exe",
+            "C:\\Program Files\\Shotcut\\ffmpeg.exe",
+            // System PATH
+            "ffmpeg.exe",
+            "ffmpeg"
+        ];
+
+        for (const path of fallbacks) {
+            if (path && existsSync(path)) {
+                ffmpegBin = path;
+                break;
+            }
+        }
     }
+
+    if (!ffmpegBin) {
+        ffmpegBin = "ffmpeg"; // Final attempt: rely on PATH
+    }
+
+    if (!ffmpegBin) {
+        throw new Error("audio-converter: could not find ffmpeg binary");
+    }
+
+    process.stderr.write(`[audio-converter] Using ffmpeg binary: ${ffmpegBin}\n`);
 
     return new Promise<void>((resolve, reject) => {
         const args = [
@@ -48,7 +75,8 @@ export async function convertToWav(
         ];
 
         // Spawn ffmpeg. Use default stdio so stderr is a readable stream.
-        const proc = spawn(ffmpegBin, args);
+        // On Windows, use shell: true to help resolve paths and DLLs if needed.
+        const proc = spawn(ffmpegBin as string, args, { shell: process.platform === "win32" }) as any;
 
         let stderr = "";
         proc.stderr.on("data", (chunk: Buffer) => {
